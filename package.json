@@ -1,0 +1,39 @@
+{
+  "name": "grunt-include-me",
+  "description": "grunt plugin to make including file easier",
+  "version": "0.0.1",
+  "homepage": "https://github.com/Darkylin/grunt-include-me",
+  "author": {
+    "name": "darkylin",
+    "email": "darkylin1989@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Darkylin/grunt-include-me.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Darkylin/grunt-include-me/issues"
+  },
+  "licenses": [
+    {
+      "type": "GNU",
+      "url": "https://github.com/Darkylin/grunt-include-me/blob/master/LICENSE-GNU"
+    }
+  ],
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "devDependencies": {
+    "grunt-contrib-clean": "^0.5.0",
+    "grunt": "~0.4.5"
+  },
+  "peerDependencies": {
+    "grunt": "~0.4.5"
+  },
+  "keywords": [
+    "gruntplugin"
+  ]
+}
