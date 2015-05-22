@@ -35,5 +35,9 @@
   },
   "keywords": [
     "gruntplugin"
-  ]
+  ],
+  "dependencies": {
+    "split": "^0.3.3",
+    "through2": "^0.6.5"
+  }
 }
