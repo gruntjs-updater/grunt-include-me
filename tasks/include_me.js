@@ -12,9 +12,18 @@ module.exports = function (grunt) {
 
     // Please see the Grunt documentation for more information regarding task
     // creation: http://gruntjs.com/creating-tasks
+    var Dag = require('./lib/Dag');
 
-    var mine = global._include_me = global._include_me || {pathspace: {__total: 0}};
-    var pathspace = mine.pathspace;
+    var Q = require('q'),
+        fs = require('fs'),
+        fswrite = Q.denodeify(fs.writeFile);
+
+    var mine = global._include_me = global._include_me || {
+            pathspace: {__total: 0},
+            dag: new Dag
+        },
+        pathspace = mine.pathspace,
+        dag = mine.dag;
     // return the given path's id, if path dosen't have id, assign a id to this path;
     // id goes from 1, increase by 1.
     function getId(path) {
@@ -33,8 +42,7 @@ module.exports = function (grunt) {
         });
         var gruntDone = this.async();
 
-        var fs = require('fs'),
-            split = require('split'),
+        var split = require('split'),
             through = require('through2'),
             path = require('path'),
             fse = require('fs-extra');
@@ -44,105 +52,78 @@ module.exports = function (grunt) {
         var temp = {};
         this.files.forEach(function (f) {
             f.src.forEach(function (src) {
+                console.log(src, f.dest)
                 var dest = f.dest;
                 fileCount++;
-                var stream = includeFile(src);
-
-                // make sure the destination file is created already
-                fse.ensureFile(dest, function () {
-                    var writeStream = fs.createWriteStream(dest);
-                    stream.pipe(writeStream);
-                    if (!options.watch) {
-                        //after all writestream finish, notify grunt to stop
-                        writeStream.on('finish', function () {
-                            fileCount--;
-                            if (fileCount == 0) {
-                                gruntDone();
-                            }
-                        });
-                    }
+                var include = getInclude(src);
+                include.done(function (content) {
+                    // make sure the destination file is created already
+                    fse.ensureFile(dest, function () {
+                        fswrite(dest, content)
+                            .done(function () {
+                                if (!options.watch) {
+                                    //after all write finish, notify grunt to stop
+                                    fileCount--;
+                                    if (fileCount == 0) {
+                                        gruntDone();
+                                    }
+                                }
+                            });
+                    });
                 });
             });
         });
 
         /**
          * An object that describe and build a File that need to execute include-me
-         * @param srcFilePath: the path of src file need to execute include-me
-         * @param dest: {{string}} meansthe path of destination file, {{undefined}} means to cache obj.
+         * @param path
          * @constructor
          */
-        function IncludeFile(srcFilePath, destFilePath) {
-
-
-        }
-
-        var watchTree = {},
-            Q = require('q');
-
-
         function Include(path) {
             var data = [];
-            var watchTree = Include.prototype.watchTree,
-                queue = Include.prototype.queue;
 
-
-            var ctrl = {
-                injectMe: function (id, index) {
-
-                },
-                done: function (cb) {
-                    cb && cb();
-                }
-            };
-
+            var me = this,
+                deferred = Q.defer(),
+                promise = deferred.promise,
+                waitCount = 0,
+                seperated = true,
+                isDone = false;
+            me.done = promise.done.bind(promise);
+            me.id = getId(path);
 
             fs.createReadStream(path)
                 .pipe(split())
                 .pipe(through(function (buffer, encoding, next) {
                     var line = buffer.toString(),
                         file = line.match(INCLUDE_REP);//extract include file from directive
-
                     if (file !== null) {
-                        var filePath = resolvePath(path, file[1]);
-                        console.log(path, line, filePath);
+                        seperated = false;
+                        waitCount++;
+                        var filePath = resolvePath(path, file[1]),
+                            index = data.length;
+                        grunt.verbose.ok('[' + path + '] find file to include:' + filePath);
                         // include the file
-                        includeFile(filePath, this, next);
+                        me.include(filePath).promise
+                            .done(function (content) {
+                                data[index] = content;
+                                waitCount--;
+                                if (waitCount == 0 && isDone) {
+                                    var content = data.join('');
+                                    deferred.resolve(content);
+                                }
+                            });
+                        data.push(null);
                     } else {
-                        buffer = Buffer.concat([buffer, new Buffer('\n')]);
-                        this.push(buffer);
-                        next();
+                        data.push(buffer.toString() + '\n');
                     }
-                }));
-
-
-            return ctrl;
-        }
-
-        Include.prototype.queue = [];
-        Include.prototype.watchTree = {};
-
-        function includeFile(path, cache, afterInclude) {
-            return fs.createReadStream(path)
-                .pipe(split())
-                .pipe(through(function (buffer, encoding, next) {
-                    var line = buffer.toString(),
-                        file = line.match(INCLUDE_REP);//extract include file from directive
-
-                    grunt.log.ok(line, file && file[1])
-                    if (file !== null) {
-                        var filePath = resolvePath(path, file[1]);
-                        console.log(path, line, filePath);
-                        // include the file
-                        includeFile(filePath, this, next);
-                    } else {
-                        buffer = Buffer.concat([buffer, new Buffer('\n')]);
-                        this.push(buffer);
-                        cache && cache.push(buffer);
-                        next();
-                    }
+                    next();
                 }, function (done) {
+                    if (seperated || waitCount == 0) {
+                        var content = data.join('');
+                        deferred.resolve(content);
+                    }
+                    isDone = true;
                     done();
-                    afterInclude && afterInclude();
                 }));
         }
 
@@ -152,6 +133,24 @@ module.exports = function (grunt) {
                 rtn = rtn + path.extname(basePath);
             }
             return rtn;
+        }
+
+        /**
+         * get an id/path 's Include obj
+         * if argument has myId means a dag relation should be establish
+         * @param path
+         * @param myId
+         * @returns {*|module.Include}
+         */
+        function getInclude(path,myId){
+            var id = path;
+            if(typeof path !== 'number'){
+                id = getId(path);
+            }
+            if(myId!==undefined){
+                dag.vector(id,myId);
+            }
+            return dag.data(id)||new Include(path);;
         }
 
     });

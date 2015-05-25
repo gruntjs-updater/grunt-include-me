@@ -9,20 +9,30 @@
  * https://www.npmjs.com/package/directed-graph-to-dag
  */
 
+
 function Dag(ROOT) {
     this._parents = {};// parent's view: who I rely on, in another word find my direct parents
     this._children = {};// child's view: who rely on me, in another word find my direct children
     this._root = new Set;
     this._data = {};//store all vertex's data
-    if (isId(ROOT)) {
-        this._root.add(ROOT);
-    } else if (isArray(ROOT)) {
-        _root.concat(ROOT);
-    } else {//object
-        extend(this._data, ROOT, this._root);
+    if (ROOT !== undefined) {
+        if (isId(ROOT)) {
+            this._root.add(ROOT);
+        } else if (isArray(ROOT)) {
+            _root.concat(ROOT);
+        } else {//object
+            extend(this._data, ROOT, this._root);
+        }
     }
 }
+
 var dp = Dag.prototype;
+dp.root = function (id, value) {
+    if (value === undefined) {
+        return this._root;
+    }
+    this._root.add(id);
+};
 dp.parent = function (id) {
     return this._parents[id] || [];
 };
@@ -30,9 +40,9 @@ dp.parent = function (id) {
  * show all my parents include ancestors
  * @param id
  */
-dp.parents = function(id){
-    var parentsView = this._parents,myParent = this.parent(id),rtn = new Set(myParent);
-    myParent.forEach(function(p){
+dp.parents = function (id) {
+    var parentsView = this._parents, myParent = this.parent(id), rtn = new Set(myParent);
+    myParent.forEach(function (p) {
         rtn.cat(parentsView[p]);
     });
     return rtn;
@@ -40,32 +50,32 @@ dp.parents = function(id){
 dp.child = function (id) {
     return this._children[id] || [];
 };
-dp.children = function(id){
-    var childrenView = this._children,myChild = this.child(id),rtn = new Set(myChild);
-    myChild.forEach(function(c){
+dp.children = function (id) {
+    var childrenView = this._children, myChild = this.child(id), rtn = new Set(myChild);
+    myChild.forEach(function (c) {
         rtn.cat(childrenView[c]);
     });
     return rtn;
 };
-dp.vector = function (v) {
-    var to, hisParents, myChildren;
-
-    var _parents = this._parents, _children = this._children;
-    for (var from in v) {
-        to = v[from];
-        hisParents = _parents[from] = _parents[from] || new Set;
-
-        if (isId(to)) {
-            myChildren = _children[to] = _children[to] || new Set;
-            addRelation(from, to, hisParents, myChildren);
-        } else if (isArray(to)) {//array
-            to.forEach(function (realTo) {
-                myChildren = _children[realTo] = _children[realTo] || new Set;
-                addRelation(from, realTo, hisParents, myChildren);
-            });
+dp.vector = function addVector(from, to) {
+    if (to === undefined) {
+        for (var f in from) {
+            addVector.call(this, f, from[f]);
         }
+        return;
+    }
+    var hisParents, myChildren;
+    var _parents = this._parents, _children = this._children;
+    hisParents = _parents[from] = _parents[from] || new Set;
 
-
+    if (isId(to)) {
+        myChildren = _children[to] = _children[to] || new Set;
+        addRelation(from, to, hisParents, myChildren);
+    } else if (isArray(to)) {//array
+        to.forEach(function (realTo) {
+            myChildren = _children[realTo] = _children[realTo] || new Set;
+            addRelation(from, realTo, hisParents, myChildren);
+        });
     }
 }
 function addRelation(from, to, hisParents, myChildren) {
@@ -87,21 +97,34 @@ dp.data = function (id, data) {
 
 dp.sonless = function (id) {
     var childrenView = this._children,
-        parentsView= this._parents,
+        parentsView = this._parents,
         oldChildren = childrenView[id];
-    childrenView[id]=new Set;
-    oldChildren.forEach(function(c){
+    childrenView[id] = new Set;
+    oldChildren.forEach(function (c) {
         parentsView[c].remove(id);
     });
+}
+/**
+ * print in parent's view
+ * so you will know who are whose children
+ */
+dp.print = function(){
+    var parentsView =  this._parents;
+    for(var i in parentsView){
+        console.log(i+':'+(parentsView&&parentsView[i]))
+    }
+
 }
 
 function isId(o) {
     var type = typeof o;
     return type == 'string' || type == 'number';
 }
+
 function isArray(o) {
     return Object.prototype.toString.call(o) == '[object Array]';
 }
+
 function extend(o1, o2, vertexSet) {
     for (var i in o2) {
         o1[i] = o2[i];
@@ -113,7 +136,8 @@ function extend(o1, o2, vertexSet) {
 function Set(arr) {
     this.cat(arr);
 }
-Set.prototype = Array.prototype;
+
+Set.prototype = new Array;
 var sp = Set.prototype;
 sp.constructor = Set;
 
@@ -142,7 +166,7 @@ sp.indexOf = function (id) {
     return index;
 };
 sp.cat = function (arr) {
-    if(!arr||!arr.length){
+    if (!arr || !arr.length) {
         return;
     }
     var i = arr.length;
@@ -150,5 +174,5 @@ sp.cat = function (arr) {
         this.add(arr[i]);
     }
 }
-
 module.exports = Dag;
+
