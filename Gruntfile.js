@@ -13,7 +13,8 @@ module.exports = function(grunt) {
   // Project configuration.
   grunt.initConfig({
       path:{
-          dev:'test'
+          dev:'test/src',
+          dist:'test/dist'
       },
     // Before generating any new files, remove any previously-created files.
     clean: {
@@ -23,8 +24,14 @@ module.exports = function(grunt) {
     // Configuration to be run (and then tested).
     include_me: {
         dev:{
-            src: ['<%=path.dev%>/*.hbs'],
-            dist:'<%=path.dev%>/dist'
+            files: [{
+                expand: true,
+                cwd: '<%= path.dev %>',
+                dest: '<%= path.dist %>',
+                src: [
+                    '*.hbs'
+                ]
+            }]
         }
 
     }

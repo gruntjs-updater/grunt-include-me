@@ -1,0 +1,7 @@
+<div id="header"> domestic </div>
+{{#test data.category '==' 1}}
+    @include tpl/domestic_oneway
+{{/test}}
+{{#test data.category '==' 2}}
+    @include tpl/domestic_roundway
+{{/test}}
