@@ -112,6 +112,7 @@ module.exports = function (grunt) {
                 deferred = Q.defer();
                 promise = deferred.promise;
                 this.done = promise.done.bind(promise);
+                waitCount++;
                 injectData[path]();
                 this.done(this.write.bind(this));
                 return this;
@@ -208,7 +209,7 @@ module.exports = function (grunt) {
             var parent = dag.parent(id);
             if (parent.length !== 0) {
                 parent.forEach(function (p) {
-                    var i = getInclude(p).change(id);
+                    getInclude(p).change(id);
                     //i.done(i.write.bind(i));
                     noticeParent(p);
                 });
