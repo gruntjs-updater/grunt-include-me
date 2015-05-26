@@ -24,6 +24,10 @@ module.exports = function(grunt) {
     // Configuration to be run (and then tested).
     include_me: {
         dev:{
+            options:{
+                watch:true,
+                watchSeperate:true
+            },
             files: [{
                 expand: true,
                 cwd: '<%= path.dev %>',

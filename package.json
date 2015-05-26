@@ -37,7 +37,9 @@
     "gruntplugin"
   ],
   "dependencies": {
+    "chalk": "^1.0.0",
     "fs-extra": "^0.18.4",
+    "gaze": "^0.5.1",
     "jsgraph": "0.1.5",
     "split": "^0.3.3",
     "through2": "^0.6.5"

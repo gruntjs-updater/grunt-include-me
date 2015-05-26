@@ -47,6 +47,14 @@ dp.parents = function (id) {
     });
     return rtn;
 };
+dp.rootParents = function(id){
+    var me = this;
+    return me.parents(id).filter(function(item){
+        if(me.parent(item).length===0){
+            return true;
+        }
+    });
+}
 dp.child = function (id) {
     return this._children[id] || [];
 };
@@ -62,29 +70,34 @@ dp.vector = function addVector(from, to) {
         for (var f in from) {
             addVector.call(this, f, from[f]);
         }
-        return;
+        return this;
     }
-    var hisParents, myChildren;
-    var _parents = this._parents, _children = this._children;
-    hisParents = _parents[from] = _parents[from] || new Set;
+    var me = this;
 
     if (isId(to)) {
-        myChildren = _children[to] = _children[to] || new Set;
-        addRelation(from, to, hisParents, myChildren);
+        addRelation.call(me, from, to);
     } else if (isArray(to)) {//array
         to.forEach(function (realTo) {
-            myChildren = _children[realTo] = _children[realTo] || new Set;
-            addRelation(from, realTo, hisParents, myChildren);
+            addRelation.call(me, from, realTo);
         });
     }
 }
-function addRelation(from, to, hisParents, myChildren) {
+function addRelation(from, to) {
+    var hisParents = this._parents[from] = this._parents[from] || new Set,
+        myChildren = this._children[to] = this._children[to] || new Set;
     //circle rely detect
-    if (from == to) {
+    if (hasCircle.call(this, from, to)) {
+        this.print(from, to);
         throw new Error('circle rely:' + from + ' ' + to);
     }
     hisParents.add(to);
     myChildren.add(from);
+}
+function hasCircle(from, to) {
+    if (from == to) {
+        return true;
+    }
+    return this.parents(to).contains(from) || this.children(from).contains(to);
 }
 
 dp.data = function (id, data) {
@@ -94,26 +107,42 @@ dp.data = function (id, data) {
     this._data[id] = data;
     return this;
 }
+dp.removeData = function(id){
+    this._data[id]=undefined;
+}
 
 dp.sonless = function (id) {
     var childrenView = this._children,
         parentsView = this._parents,
         oldChildren = childrenView[id];
     childrenView[id] = new Set;
-    oldChildren.forEach(function (c) {
+    oldChildren && oldChildren.forEach(function (c) {
         parentsView[c].remove(id);
     });
 }
+var chalk = require('chalk');
 /**
  * print in parent's view
- * so you will know who are whose children
+ * so you will know one's direct children easily
  */
-dp.print = function(){
-    var parentsView =  this._parents;
-    for(var i in parentsView){
-        console.log(i+':'+(parentsView&&parentsView[i]))
-    }
+dp.print = function (from, to) {
+    var childrensView = this._children,
+        msg = chalk.blue('\n===include view===start===\n');
 
+    for (var i in childrensView) {
+        var children = childrensView && childrensView[i] || [];
+        if (i === to) {
+            children.push(from);
+        }
+        var singleMsg = i + ':[' + children.join(', ') + ']\n';
+        var REGEXP = new RegExp('(' + from.replace(/\//g, '\\\/') + '|' + to.replace(/\//g, '\\\/') + ')', 'g');
+
+        msg += singleMsg.replace(REGEXP, function (all, g1) {
+            return chalk.red(g1);
+        });
+    }
+    msg += chalk.blue('===include view===end===\n');
+    console.log(msg);
 }
 
 function isId(o) {
@@ -167,12 +196,13 @@ sp.indexOf = function (id) {
 };
 sp.cat = function (arr) {
     if (!arr || !arr.length) {
-        return;
+        return this;
     }
     var i = arr.length;
     while (i--) {
         this.add(arr[i]);
     }
+    return this;
 }
 module.exports = Dag;
 
