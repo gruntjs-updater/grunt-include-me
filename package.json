@@ -1,7 +1,7 @@
 {
   "name": "grunt-include-me",
   "description": "grunt plugin to make including file easier",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "homepage": "https://github.com/Darkylin/grunt-include-me",
   "author": {
     "name": "darkylin",
@@ -40,6 +40,7 @@
     "chalk": "^1.0.0",
     "fs-extra": "^0.18.4",
     "gaze": "^0.5.1",
+    "q": "^1.4.1",
     "split": "^0.3.3",
     "through2": "^0.6.5"
   }

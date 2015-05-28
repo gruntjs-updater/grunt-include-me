@@ -5,3 +5,4 @@ tmp
 dist/
 test.*
 bower_components/
+.iml
