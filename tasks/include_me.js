@@ -40,7 +40,7 @@ module.exports = function (grunt) {
         var options = this.options({
             directive: '@include',
             watch: false,
-            watchSeperate: true
+            watchSeperate: false
         });
         var gruntDone = this.async();
 
